@@ -8,4 +8,4 @@ Package Version
 This module exposes the installed Altira package version.
 """
 
-__version__ = "2026.10.2"
+__version__ = "2026.10.3"

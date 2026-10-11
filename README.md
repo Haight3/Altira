@@ -3,7 +3,7 @@
         <img src="https://raw.githubusercontent.com/Haight3/Altira/refs/heads/main/resources/images/logo.jfif" width="75%">
     </p>
 
-<h2 align="center">Altira v-2026.9.0</h2>
+<h2 align="center">Altira v-2026.10.3</h2>
 <h4 align="center">Image-driven DEM acquisition and elevation queries.</h4>
 
 <p align="center">
