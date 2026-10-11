@@ -123,7 +123,7 @@ def identify_tile(path: str) -> TileInfo | None:
     return TileInfo(path, west, min(west + width, 180), south, south + 1, datum, resolution)
 
 
-def discover_tiles(folder: str) -> tuple[TileInfo, ...]:
+def discover_tiles(folder: str, *, exclude_directories: tuple[str, ...] = ()) -> tuple[TileInfo, ...]:
     """Scan one local dataset path, including ZIP/TAR rasters and mapping.csv.
 
     DTED duplicates are ordered by resolution. Directory order is deterministic;
@@ -133,6 +133,8 @@ def discover_tiles(folder: str) -> tuple[TileInfo, ...]:
     ----------
     folder : str
         Existing directory to scan recursively.
+    exclude_directories : tuple of str, default=()
+        Top-level directory names to omit from the scan.
 
     Returns
     -------
@@ -149,6 +151,8 @@ def discover_tiles(folder: str) -> tuple[TileInfo, ...]:
     mappings: dict[str, tuple[str, str]] = {}
     filenames = []
     for root, directories, files in os.walk(folder):
+        if root == folder:
+            directories[:] = [name for name in directories if name not in exclude_directories]
         directories.sort()
         for filename in sorted(files):
             path = os.path.join(root, filename)
@@ -247,4 +251,3 @@ def index_tiles(tiles: tuple[TileInfo, ...]) -> dict[tuple[int, int], TileInfo]:
             for lon in range(math.floor(tile.west), math.ceil(tile.east)):
                 cells.setdefault((lon, lat), tile)
     return cells
-

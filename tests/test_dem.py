@@ -267,6 +267,66 @@ def test_download_catalog_tile_and_reuse_cache(tmp_path: os.PathLike[str], http_
     assert len(paths) == 3
 
 
+@pytest.mark.parametrize("layout", ["user", "legacy", "longitude"])
+def test_download_only_missing_tiles(tmp_path: os.PathLike[str], http_server: tuple[str, list[str]], layout: str) -> None:
+    url, paths = http_server
+    existing_name = "Copernicus_DSM_COG_10_N00_00_E000_00_DEM"
+    missing_name = "Copernicus_DSM_COG_10_N00_00_W001_00_DEM"
+    cache = os.path.join(tmp_path, "cache")
+    if layout == "user":
+        folder = os.path.join(cache, "E000")
+    elif layout == "legacy":
+        folder = os.path.join(cache, "copernicus-30m")
+    else:
+        folder = os.path.join(cache, "copernicus-30m", "E000")
+    existing_path = write_raster(os.path.join(folder, existing_name + ".tif"), np.full((5, 5), 100))
+    write_raster(
+        os.path.join(cache, "geoid", "us_nga_egm08_25.tif"),
+        np.full((5, 9), 45),
+        (-1.125, 0.25, 0, 1.125, 0, -0.25),
+    )
+    with open(os.path.join(tmp_path, "tileList.txt"), "w", encoding="utf-8") as catalog:
+        catalog.write(existing_name + "\n" + missing_name + "\n")
+    write_raster(
+        os.path.join(tmp_path, missing_name, missing_name + ".tif"),
+        np.full((5, 5), 200),
+        (-1.125, 0.25, 0, 1.125, 0, -0.25),
+    )
+    dem = Dem(cache_dir=cache)
+    dem.provider.base_url = url
+    tiles = dem.preload_dem_tiles(-1, 1, 0, 1)
+    by_longitude = {tile.info.west: tile for tile in tiles}
+    assert by_longitude[0].info.path == existing_path
+    assert by_longitude[-1].info.path == os.path.join(cache, "copernicus-30m", "W001", missing_name + ".tif")
+    np.testing.assert_array_equal(by_longitude[0].heights, 145)
+    np.testing.assert_array_equal(by_longitude[-1].heights, 245)
+    assert paths == ["/tileList.txt", f"/{missing_name}/{missing_name}.tif"]
+    second = Dem(cache_dir=cache)
+    second.provider.base_url = url
+    np.testing.assert_array_equal(second.interpolate_heights([-0.5, 0.5], [0.5, 0.5]), [245, 145])
+    assert paths == ["/tileList.txt", f"/{missing_name}/{missing_name}.tif"]
+    if layout != "longitude":
+        assert not os.path.exists(os.path.join(cache, "copernicus-30m", "E000", existing_name + ".tif"))
+
+
+@pytest.mark.parametrize("explicit_local", [False, True])
+def test_cache_root_tiles_work_without_catalog(
+    tmp_path: os.PathLike[str], http_server: tuple[str, list[str]], explicit_local: bool
+) -> None:
+    url, paths = http_server
+    cache = os.path.join(tmp_path, "cache")
+    name = "TDM1_DEM__10_N00E000_DEM.tif"
+    cached_path = write_raster(os.path.join(cache, "E000", name), np.full((5, 5), 100))
+    local = os.path.join(tmp_path, "local")
+    local_path = write_raster(os.path.join(local, name), np.full((5, 5), 200))
+    dem = Dem(cache_dir=cache, local_paths=(local,) if explicit_local else ())
+    dem.provider.base_url = url
+    tile = dem.preload_dem_tiles(0, 1, 0, 1)[0]
+    assert tile.info.path == (local_path if explicit_local else cached_path)
+    np.testing.assert_array_equal(tile.heights, 200 if explicit_local else 100)
+    assert paths == []
+
+
 def test_failed_download_preserves_destination(tmp_path: os.PathLike[str], http_server: tuple[str, list[str]]) -> None:
     url, _ = http_server
     destination = os.path.join(tmp_path, "cache", "tile.tif")

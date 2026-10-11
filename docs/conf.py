@@ -23,7 +23,7 @@ copyright = '{0}, {1}'.format(year, author)
 try:
     version = release = get_version('altira')
 except PackageNotFoundError:
-    version = release = "2026.10.2"
+    version = release = "2026.10.3"
 
 pygments_style = 'trac'
 templates_path = ['.']

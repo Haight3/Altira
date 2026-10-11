@@ -65,7 +65,11 @@ class Copernicus:
                 name = line.strip().rstrip("/")
                 if not name:
                     continue
-                info = identify_tile(os.path.join(self.cache_dir, name + ".tif"))
+                path = os.path.join(self.cache_dir, name.split("_")[6], name + ".tif")
+                legacy_path = os.path.join(self.cache_dir, name + ".tif")
+                if not os.path.isfile(path) and os.path.isfile(legacy_path):
+                    path = legacy_path
+                info = identify_tile(path)
                 if info is not None:
                     tiles[int(info.west), int(info.south)] = info
         self.tiles = tiles

@@ -1,7 +1,35 @@
 <div align="center">
     <p>
-        <img src="./resources/images/logo.jfif" width="75%">
+        <img src="https://raw.githubusercontent.com/Haight3/Altira/refs/heads/main/resources/images/logo.jfif" width="75%">
     </p>
+
+<h2 align="center">Altira v-2026.10.3</h2>
+<h4 align="center">Image-driven DEM acquisition and elevation queries.</h4>
+
+<p align="center">
+  <a href="#overview">Overview</a> &bull;
+  <a href="#installation">Installation</a> &bull;
+  <a href="#dem-usage">Quick Start</a> &bull;
+  <a href="#documentation">Documentation</a> &bull;
+  <a href="#development">Development</a>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/altira/">
+    <img src="https://img.shields.io/pypi/v/altira.svg" alt="PyPI">
+  </a>
+  <a href="https://github.com/Haight3/Altira/actions/workflows/ci.yml">
+    <img src="https://github.com/Haight3/Altira/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <a href="https://github.com/Haight3/Altira/actions/workflows/validate-release-meta.yaml">
+    <img src="https://github.com/Haight3/Altira/actions/workflows/validate-release-meta.yaml/badge.svg" alt="Validate Release Metadata">
+  </a>
+  <a href="https://github.com/Haight3/Altira/actions/workflows/deploy.yaml">
+    <img src="https://github.com/Haight3/Altira/actions/workflows/deploy.yaml/badge.svg" alt="Deployment">
+  </a>
+</p>
+</div>
+
 
 # Overview
 

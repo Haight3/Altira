@@ -66,6 +66,7 @@ class OpenTopography:
         self.cache_dir = os.path.join(cache_dir, "opentopography", self.dataset)
         self.base_url = "https://opentopography.s3.sdsc.edu/raster"
         self.tiles: dict[tuple[int, int], TileInfo] | None = None
+        self.tile_references: dict[str, str] = {}
 
     def read_catalog(self, path: str) -> dict[tuple[int, int], TileInfo]:
         """Parse and validate relative tile references in this product's VRT.
@@ -89,6 +90,7 @@ class OpenTopography:
         if root.tag != "VRTDataset":
             raise ValueError(f"Expected an OpenTopography VRT tile catalog: {path}")
         tiles = {}
+        references = {}
         for entry in root.iter("SourceFilename"):
             relative = (entry.text or "").strip()
             parts = relative.split("/")
@@ -105,13 +107,19 @@ class OpenTopography:
             west = int(longitude[1:]) * (1 if longitude[0] == "E" else -1)
             if not (-180 <= west < 180 and -90 <= south < 90):
                 raise ValueError(f"Invalid geographic coordinates in {self.dataset} catalog entry: {relative!r}")
-            info = TileInfo(os.path.join(self.cache_dir, *parts), west, west + 1, south, south + 1, self.source_datum, self.resolution)
+            tile_path = os.path.join(self.cache_dir, longitude, parts[-1])
+            legacy_path = os.path.join(self.cache_dir, *parts)
+            if not os.path.isfile(tile_path) and os.path.isfile(legacy_path):
+                tile_path = legacy_path
+            info = TileInfo(tile_path, west, west + 1, south, south + 1, self.source_datum, self.resolution)
             cell = (west, south)
             if cell in tiles:
                 raise ValueError(f"Duplicate degree cell in {self.dataset} catalog: {cell}")
             tiles[cell] = info
+            references[tile_path] = relative
         if not tiles:
             raise ValueError(f"Empty OpenTopography tile catalog: {path}")
+        self.tile_references = references
         return tiles
 
     def validate_catalog(self, path: str) -> None:
@@ -170,7 +178,7 @@ class OpenTopography:
         if os.path.isfile(info.path):
             validate_raster(info.path)
             return info.path
-        relative = os.path.relpath(info.path, self.cache_dir).replace(os.sep, "/")
+        relative = self.tile_references[info.path]
         logger.info("Downloading %s tile %s", self.label, os.path.basename(info.path))
         download_file(f"{self.base_url}/{self.dataset}/{relative}", info.path, validate=validate_raster)
         return info.path

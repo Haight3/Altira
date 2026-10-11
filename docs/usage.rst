@@ -82,8 +82,10 @@ TanDEM-X, edited TanDEM-X, and Copernicus GeoTIFF/DTED. Conventional dataset
 filenames identify coverage and vertical datum. ZIP/TAR rasters are read through
 GDAL without extraction; legacy Copernicus deliveries can use ``mapping.csv``.
 
-Local directories take priority in their supplied order. Within a directory,
-the finest nominal resolution wins. Remaining cells use public Copernicus
+Local directories take priority in their supplied order. Existing user-organized
+tiles in ``cache_dir`` (for example, ``D:/DEM/E132/*.tif``) are indexed next.
+Provider-managed directories retain their source-specific catalog selection.
+Within a directory, the finest nominal resolution wins. Remaining cells use public Copernicus
 GLO-30 by default. Set ``resolution=90`` explicitly for GLO-90; unavailable
 GLO-30 cells never cause an automatic switch to GLO-90. The local index is built
 at construction; construct a new ``Dem`` after adding local data.
@@ -94,8 +96,11 @@ Required grids download from the PROJ CDN and are resampled to the DEM's actual
 grid before applying ``ellipsoidal height = orthometric height + geoid height``.
 HTTP, invalid raster, and failed datum-conversion errors propagate.
 
-Persistent downloads live under ``cache_dir/copernicus-30m`` or
-``cache_dir/copernicus-90m``; geoid grids live under ``cache_dir/geoid``.
+New Copernicus downloads are grouped by longitude under
+``cache_dir/copernicus-30m/E132`` or ``cache_dir/copernicus-90m/E132``.
+Catalogs remain in the product directory; existing tiles directly in that
+directory are reused without moving them. Existing valid tiles are reused,
+and only missing tiles are downloaded. Geoid grids live under ``cache_dir/geoid``.
 Downloads publish validated files atomically. The in-memory LRU limit covers
 cached elevation arrays in MiB. Zero disables it, and oversized tiles are
 returned without being retained. Arrays kept by callers of preload methods
@@ -143,6 +148,12 @@ live under ``cache_dir/opentopography/<dataset>``:
 * ``AW3D30`` and ``AW3D30_E`` for the two ALOS variants.
 * ``SRTM_GL1`` and ``SRTM_GL3`` for SRTM 30/90 m.
 * ``SRTM_GL1_Ellip`` for ellipsoidal SRTM 30 m.
+
+New tiles are grouped by longitude, for example
+``cache_dir/opentopography/AW3D30/E132/ALPSMLC30_N035E132_DSM.tif``.
+Existing tiles in the previous catalog-based directory layout are also reused
+without moving them. Only missing tiles are downloaded, using the catalog's
+original server paths. Product catalogs remain in their product cache directory.
 
 Native WGS84 ellipsoidal variants skip geoid conversion. Orthometric ALOS and
 SRTM use EGM96. Unsupported source/resolution combinations raise before any
