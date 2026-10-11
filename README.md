@@ -1,10 +1,10 @@
 <div align="center">
     <p>
-        <img src="https://raw.githubusercontent.com/Haight3/Altira/refs/heads/main/resources/images/logo.jfif" 
+        <img src="https://raw.githubusercontent.com/Haight3/Altira/refs/heads/main/resources/images/logo.jfif" width="75%">
     </p>
 
-<h2 align="center">PyCountry Convert Next Generation v2026.9.0</h2>
-<h4 align="center">Fast country, ISO code, and continent conversion utilities.</h4>
+<h2 align="center">Altira v-2026.9.0</h2>
+<h4 align="center">Image-driven DEM acquisition and elevation queries.</h4>
 
 <p align="center">
   <a href="#overview">Overview</a> &bull;
