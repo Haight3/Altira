@@ -1,0 +1,261 @@
+
+name: Cross-Platform Build, Deploy & Release
+
+# -----------------------------------------------------------------------------
+# Purpose
+# -----------------------------------------------------------------------------
+# This workflow performs the complete production release after code has been
+# merged into the main branch.
+#
+# Release flow:
+#
+#   merge into main
+#       ↓
+#   read and validate release metadata
+#       ↓
+#   build protected Cython wheels for all supported platforms
+#       ↓
+#   verify package installation
+#       ↓
+#   publish wheels to PyPI
+#       ↓
+#   create Git tag
+#       ↓
+#   create GitHub Release
+#
+# The deployment wheels are built through:
+#
+#   resources/scripts/deploy.py
+#
+# That script creates an isolated staging copy of the repository, enables
+# Cython for the release build, compiles protected Python modules into native
+# extensions, runs cibuildwheel, verifies the resulting wheels, and copies the
+# verified artifacts into wheelhouse.
+#
+# No Git tag or GitHub Release is created until all wheels have successfully
+# been uploaded and installation-tested.
+#
+# pyproject.toml is the canonical source of the package version.
+#
+# Example:
+#
+#   pyproject.toml:
+#       version = "2026.8.1"
+#
+#   resulting Git tag:
+#       v2026.8.1
+#
+#   resulting GitHub Release:
+#       v2026.8.1
+# -----------------------------------------------------------------------------
+
+on:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    # -------------------------------------------------------------------------
+    # STEP 1: Read and validate release metadata
+    # -------------------------------------------------------------------------
+    prepare-release:
+        name: Prepare release
+        if: "!contains(github.event.head_commit.message, '[skip deployment]')"
+        runs-on: ubuntu-latest
+
+        outputs:
+            package-name: ${{ steps.package.outputs.name }}
+            package-version: ${{ steps.package.outputs.version }}
+            release-tag: ${{ steps.package.outputs.tag }}
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.13"
+
+            - name: Read package metadata
+              id: package
+              shell: bash
+              run: |
+                  PACKAGE_NAME=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['name'])")
+                  PACKAGE_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+                  RELEASE_TAG="v${PACKAGE_VERSION}"
+
+                  echo "name=${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+                  echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+                  echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+
+                  echo "Package: ${PACKAGE_NAME}"
+                  echo "Version: ${PACKAGE_VERSION}"
+                  echo "Tag:     ${RELEASE_TAG}"
+
+            - name: Verify release tag does not already exist
+              shell: bash
+              run: |
+                  TAG="${{ steps.package.outputs.tag }}"
+
+                  if git rev-parse "${TAG}" >/dev/null 2>&1; then
+                      echo "Release tag ${TAG} already exists."
+                      exit 1
+                  fi
+
+    # -------------------------------------------------------------------------
+    # STEP 2: Build protected binary wheels for every supported operating system
+    # -------------------------------------------------------------------------
+    build-wheels:
+        name: Build wheels on ${{ matrix.os }}
+        needs:
+            - prepare-release
+
+        runs-on: ${{ matrix.os }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                os:
+                    - ubuntu-latest
+                    - windows-latest
+                    - macos-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.13"
+
+            - name: Install deployment dependencies
+              run: python -m pip install --upgrade pip typer tqdm cibuildwheel
+
+            - name: Build protected release wheels
+              env:
+                  CIBW_BUILD: "cp313-*"
+              run: python resources/scripts/deploy.py --src . --output-dir wheelhouse
+
+            - name: Upload wheel artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: wheels-${{ matrix.os }}
+                  path: ./wheelhouse/*.whl
+                  if-no-files-found: error
+
+    # -------------------------------------------------------------------------
+    # STEP 3: Verify the built wheels with native GDAL dependencies installed
+    # -------------------------------------------------------------------------
+    verify-wheels:
+        name: Verify wheel on ${{ matrix.os }}
+        needs: [prepare-release, build-wheels]
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+            - name: Set up Miniconda
+              uses: conda-incubator/setup-miniconda@v3
+              with:
+                  miniforge-version: latest
+                  environment-file: resources/envs/altira.yml
+                  activate-environment: altira
+                  auto-activate-base: false
+            - name: Download platform wheels
+              uses: actions/download-artifact@v4
+              with:
+                  name: wheels-${{ matrix.os }}
+                  path: dist
+            - name: Install built wheel
+              shell: bash -el {0}
+              run: |
+                  conda run -n altira python -c "import subprocess, sys, tomllib; dependencies = tomllib.load(open('pyproject.toml', 'rb'))['project']['dependencies']; subprocess.run([sys.executable, '-m', 'pip', 'install', *dependencies], check=True)"
+                  conda run -n altira python -m pip install --no-index --no-deps --find-links dist "${{ needs.prepare-release.outputs.package-name }}==${{ needs.prepare-release.outputs.package-version }}"
+            - name: Verify version and imports
+              shell: bash -el {0}
+              env:
+                  PACKAGE_NAME: ${{ needs.prepare-release.outputs.package-name }}
+                  PACKAGE_VERSION: ${{ needs.prepare-release.outputs.package-version }}
+              run: |
+                  conda run -n altira python -m pip check
+                  conda run -n altira python -c "import importlib.metadata, os; from osgeo import gdal, gdal_array; from altira import Dem, DemTile; import altira.cli; assert importlib.metadata.version(os.environ['PACKAGE_NAME']) == os.environ['PACKAGE_VERSION']"
+
+    # -------------------------------------------------------------------------
+    # STEP 4: Publish verified wheels to PyPI
+    # -------------------------------------------------------------------------
+    publish-pypi:
+        name: Publish to PyPI
+        needs: [build-wheels, verify-wheels]
+        runs-on: ubuntu-latest
+        environment:
+            name: pypi
+            url: https://pypi.org/project/altira/
+        permissions:
+            id-token: write
+        steps:
+            - name: Download compiled wheels
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: wheels-*
+                  path: dist
+                  merge-multiple: true
+            - name: Publish distributions to PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+
+    # -------------------------------------------------------------------------
+    # STEP 5: Create the Git tag and GitHub Release after PyPI publication
+    #
+    # gh release create points the tag to the main commit that triggered this run.
+    # -------------------------------------------------------------------------
+    publish-release:
+        name: Publish GitHub Release
+        needs:
+            - prepare-release
+            - publish-pypi
+
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Download all compiled wheels
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: wheels-*
+                  path: dist
+                  merge-multiple: true
+
+            - name: Extract current changelog entry
+              shell: bash
+              run: |
+                  awk '
+                      /^## \[/ {
+                          if (found) exit
+                          found=1
+                      }
+                      found
+                  ' src/.info/CHANGELOG.md > RELEASE_NOTES.md
+
+            - name: Create Git tag and GitHub Release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              shell: bash
+              run: |
+                  gh release create "${{ needs.prepare-release.outputs.release-tag }}" dist/*.whl \
+                      --target "${{ github.sha }}" \
+                      --notes-file RELEASE_NOTES.md
+

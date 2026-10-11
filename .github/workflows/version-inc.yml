@@ -1,0 +1,44 @@
+
+name: Version Increment
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: ["release-candidate"]
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    if: >
+      github.actor != 'github-actions[bot]' &&
+      !contains(github.event.head_commit.message, '[skip version]')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install bumpver
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install bumpver
+
+      - name: Increment patch version
+        run: bumpver update --patch
+

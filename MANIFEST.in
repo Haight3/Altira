@@ -1,0 +1,21 @@
+graft src
+graft resources
+graft tests
+
+graft .github
+include .pre-commit-config.yaml
+include .readthedocs.yml
+include pyproject.toml
+include Dockerfile
+include .devcontainer.json
+include .dockerignore
+
+include ./src/.info/*
+include ./resources/envs/*
+include ./resources/scripts/*
+include CONTRIBUTING.md
+include LICENSE
+include README.md
+include ./.vscode/*
+
+global-exclude *.py[cod] __pycache__/* *.so *.dylib

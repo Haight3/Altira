@@ -1,0 +1,40 @@
+# This file exists so you can easily regenerate your project.
+#
+# `cookiepatcher` is a convenient shim around `cookiecutter`
+# for regenerating projects (it will generate a .cookiecutterrc
+# automatically for any template). To use it:
+#
+#    pip install cookiepatcher
+#    cookiepatcher gh:ionelmc/cookiecutter-pylibrary altira
+#
+# See:
+#    https://pypi.org/project/cookiepatcher
+#
+# Alternatively, you can run:
+#
+#    cookiecutter --overwrite-if-exists --config-file=altira/.cookiecutterrc gh:ionelmc/cookiecutter-pylibrary
+
+default_context:
+    allow_tests_inside_package: 'no'
+    command_line_interface_bin_name: 'altira'
+    email:                     'ismail.baris@haight.ai'
+    full_name:                 'Ismail Baris'
+    github_actions:            'yes'
+    license:                   'no'
+    package_name:              'altira'
+    project_logo:              './data/logo/logo.png'
+    project_name:              'Altira'
+    project_short_description: 'An example package. Generated with cookiecutter-pylibrary.'
+    pypi_disable_upload:       'yes'
+    release_date:              'today'
+    repo_hosting:              'github.com'
+    repo_hosting_domain:       'github.com'
+    repo_name:                 'altira'
+    repo_username:             'Haight3'
+    sphinx_docs_hosting:       'https://altira.readthedocs.io/'
+    sphinx_doctest:            'no'
+    sphinx_theme:              'sphinx-rtd-theme'
+    version:                   '2026.10.0'
+    website:                   'haight.ai'
+    year_from:                 '2026'
+    year_to:                   '2026'

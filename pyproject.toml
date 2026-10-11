@@ -1,0 +1,190 @@
+[build-system]
+requires = [
+    "setuptools>=69",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "altira"
+version = "2026.10.2"
+description = 'An example package. Generated with cookiecutter-pylibrary.'
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = 'Ismail Baris', email = 'ismail.baris@haight.ai' },
+]
+keywords = []
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "defusedxml>=0.7.1",
+    "GDAL>=3.8",
+    "numpy>=1.26",
+    "requests>=2.32",
+    "typer>=0.12",
+]
+[project.urls]
+Homepage = "https://github.com/Haight3/altira"
+Issues = "https://github.com/Haight3/altira/issues"
+Documentation = "https://altira.readthedocs.io/"
+
+[project.scripts]
+altira = "altira.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "bumpver",
+    "matplotlib",
+    "pytest>=8.4.2",
+    "timm",
+    "ruff==0.16.1",
+    "sphinx",
+    "shibuya",
+    "jupyterlab",
+    "twine",
+    "build",
+    "import-linter",
+    "pre-commit>=3.7",
+]
+
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme",
+]
+
+test = [
+    "pytest>=8.4.2",
+    "pytest-cov>=5.0",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["altira*"]
+
+[tool.importlinter]
+root_package = "altira"
+
+[[tool.importlinter.contracts]]
+name = "Application modules depend on lower-level modules"
+type = "layers"
+layers = [
+    "altira.cli",
+    "altira.dem",
+    "altira.image | altira.provider | altira.vertical",
+    "altira.datasets",
+    "altira.coverage | altira.downloads | altira.raster",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+norecursedirs = ["migrations"]
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--doctest-modules",
+    "--doctest-glob=*.rst",
+    "--tb=short",
+]
+testpaths = ["tests"]
+filterwarnings = ["error"]
+
+[tool.bumpver]
+current_version = "2026.10.2"
+version_pattern = "YYYY.MM.PATCH"
+commit_message = "ver(altira): bump version from {old_version} -> {new_version}"
+commit = true
+tag = false
+push = true
+version_regex = "(?P<year>[0-9]{4})\\.(?P<month>[0-9]{1,2})\\.(?P<patch>[0-9]+)"
+version_replacement = "{year}.{month}.{patch}"
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"',
+]
+"README.md" = [
+    "v-{version}",
+]
+"src/altira/version.py" = [
+    '__version__ = "{version}"',
+]
+"docs/conf.py" = [
+    'version = release = "{version}"',
+]
+"docs/readme.rst" = [
+    "Altira [v-{version}]",
+]
+
+
+[tool.ruff]
+line-length = 140
+extend-exclude = ["resources/docs/conf.py", "resources/scripts/deploy.py"]
+preview = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN401",
+    "COM812",
+    "D205",
+    "D213",
+    "D400",
+    "D401",
+    "D413",
+    "D415",
+    "EM",
+    "EM101",
+    "ERA001",
+    "FBT001",
+    "FBT002",
+    "PLR0913",
+    "PTH",
+    "FURB103", # Repository path convention uses strings and os.path.
+    "RET504",
+    "T201",
+    "TRY003",
+    "C901",
+    "PLR0917",
+    "PLR2004",
+    "SLF001",
+    "N812",
+    "PLR0914",
+    "PLC2701",
+    "PLW0717",
+    "N817",
+    "RUF067",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"resources/docs/conf.py" = ["A001", "D100", "INP001", "Q000", "UP009", "UP030", "UP031", "UP032", "I001", "COM812"]
+"resources/scripts/*.py" = ["D100", "INP001", "UP009"]
+"tests/*.py" = ["ANN201", "D100", "D103", "INP001", "RUF048", "S101", "PERF102", "B007", "PLR2004", "N806", "PLC0415", "ANN202"]
+"src/**/__init__.py" = ["RUF067", "F401", "CPY001", "F403", "D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

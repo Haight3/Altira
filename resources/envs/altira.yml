@@ -1,0 +1,11 @@
+name: altira
+channels:
+  - conda-forge
+dependencies:
+  - conda-forge::python=3.13.3
+  - conda-forge::pip
+  - conda-forge::gdal
+  - conda-forge::libgdal-jp2openjpeg
+  - conda-forge::proj
+  - conda-forge::pyproj
+  - pip

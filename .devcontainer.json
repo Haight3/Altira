@@ -1,0 +1,20 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "target": "develop"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.pylint",
+        "njpwerner.autodocstring",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one",
+        "DavidAnson.vscode-markdownlint"
+      ]
+    }
+  },
+  "postCreateCommand": "conda run -n altira pip install --no-build-isolation -e ."
+}

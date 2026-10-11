@@ -1,0 +1,121 @@
+# -----------------------------------------------------------------------------
+# Purpose
+# -----------------------------------------------------------------------------
+# This workflow provides the continuous-integration checks.
+#
+# It validates changes before they are promoted through the release process.
+# The workflow runs:
+#
+#   - on pushes to release-candidate
+#   - on pull requests targeting release-candidate
+#   - on pull requests targeting main
+#   - manually through workflow_dispatch
+#
+# The workflow currently performs two independent validation jobs:
+#
+#   1. Import architecture validation
+#      Uses import-linter to enforce the package dependency rules defined in
+#      pyproject.toml.
+#
+#   2. Test suite execution
+#      Installs the test dependencies and runs pytest.
+#
+# The intended release flow is:
+#
+#   feature/development branch
+#       ↓
+#   pull request to release-candidate
+#       ↓
+#   CI validation
+#       ↓
+#   merge into release-candidate
+#       ↓
+#   CI validation of the integrated state
+#       ↓
+#   pull request to main
+#       ↓
+#   CI validation
+#       ↓
+#   release metadata validation
+#       ↓
+#   merge into main
+#       ↓
+#   release tag creation
+#       ↓
+#   deployment workflow
+#
+# The CI workflow does not modify the repository, create versions, create tags,
+# or deploy packages. Its only responsibility is validation.
+#
+# The jobs are intentionally independent so GitHub can report architecture
+# violations and test failures separately.
+#
+# For main, the relevant CI checks should be configured as required status
+# checks in the repository branch protection or ruleset. This prevents a pull
+# request from being merged when one of the required validations fails.
+# -----------------------------------------------------------------------------
+
+name: CI
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - release-candidate
+
+  pull_request:
+    branches:
+      - release-candidate
+      - main
+
+jobs:
+  lint-imports:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install import-linter
+          pip install --no-deps .
+
+      - name: Run Import Linter
+        run: lint-imports
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with Git LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Pull Git LFS files
+        run: git lfs pull
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: false
+
+      - name: Create Conda environment
+        shell: bash -el {0}
+        run: conda env create -f resources/envs/altira.yml
+
+      - name: Install dependencies
+        shell: bash -el {0}
+        run: conda run -n altira pip install -e ".[test]"
+
+      - name: Run tests
+        shell: bash -el {0}
+        run: conda run -n altira python -m pytest
