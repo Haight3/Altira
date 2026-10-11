@@ -1,3 +1,4 @@
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -23,5 +24,7 @@ This project uses calendar versioning in the `YYYY.MM.INC0.PATCH` format.
 ### Removed
 
 ### Fixed
+
+- Fix test dependencies for CI
 
 ### Security
