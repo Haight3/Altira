@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
@@ -57,7 +58,8 @@ class Dem:
     """Persistent local dataset index, online provider, and bounded LRU tile cache.
 
     Local directories have priority in their supplied order; within a directory
-    the finest nominal resolution wins. The selected source serves remaining cells.
+    the finest nominal resolution wins. User-organized tiles in cache_dir follow
+    explicit local paths. The selected source serves remaining cells.
     All elevation queries return WGS84 ellipsoidal meters. Missing cells are
     logged once per instance; interpolation uses the explicit avg_height for
     their samples. Network, raster, and datum-conversion failures raise errors.
@@ -66,6 +68,7 @@ class Dem:
     ----------
     cache_dir : str
         Persistent directory for remote rasters, catalogs, and geoid grids.
+        Existing user-organized DEM tiles are indexed after local_paths.
     local_paths : sequence of str, default=()
         Existing local DEM directories, ordered by priority.
     source : Source, default="copernicus"
@@ -116,6 +119,16 @@ class Dem:
         self.tile_priority: dict[str, int] = {}
         for folder in local_paths:
             tiles = discover_tiles(folder)
+            for tile in tiles:
+                self.tile_priority.setdefault(tile.path, len(self.tile_priority))
+            for cell, tile in index_tiles(tiles).items():
+                self.local_tiles.setdefault(cell, tile)
+        if os.path.isdir(cache_dir):
+            # Provider caches use their own catalogs to preserve source and resolution.
+            tiles = discover_tiles(
+                cache_dir,
+                exclude_directories=("copernicus-30m", "copernicus-90m", "opentopography", "geoid"),
+            )
             for tile in tiles:
                 self.tile_priority.setdefault(tile.path, len(self.tile_priority))
             for cell, tile in index_tiles(tiles).items():
