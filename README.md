@@ -7,11 +7,10 @@
 <h4 align="center">Fast country, ISO code, and continent conversion utilities.</h4>
 
 <p align="center">
-  <a href="#introduction">Introduction</a> &bull;
-  <a href="#why-this-fork">Why This Fork?</a> &bull;
-  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#overview">Overview</a> &bull;
   <a href="#installation">Installation</a> &bull;
-  <a href="#api">API</a> &bull;
+  <a href="#dem-usage">Quick Start</a> &bull;
+  <a href="#documentation">Documentation</a> &bull;
   <a href="#development">Development</a>
 </p>
 
