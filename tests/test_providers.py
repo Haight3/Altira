@@ -60,7 +60,7 @@ def test_image_download_datum_queries_and_persistent_reuse(
     assert requests == [f"/{dataset}/{catalog_name}"]  # Discovery downloads no elevation rasters.
     tile = dem.preload_image(image)[0]
     assert tile.info.source_datum == datum
-    assert tile.info.path == os.path.join(cache, "opentopography", dataset, *relative.split("/"))
+    assert tile.info.path == os.path.join(cache, "opentopography", dataset, "E000", relative.rsplit("/", maxsplit=1)[-1])
     np.testing.assert_array_equal(tile.heights, height)
     np.testing.assert_array_equal(read_raster(tile.info.path).values, 100)
     np.testing.assert_allclose(dem.interpolate_heights([[0.5]], [[0.5]]), [[height]])
@@ -78,6 +78,73 @@ def test_image_download_datum_queries_and_persistent_reuse(
     assert not os.path.exists(os.path.join(cache, "copernicus-30m"))
     if datum == "wgs84":
         assert not os.path.exists(os.path.join(cache, "geoid"))
+
+
+@pytest.mark.parametrize("layout", ["legacy", "longitude"])
+@pytest.mark.parametrize(
+    ("source", "resolution", "dataset", "catalog_name", "relative"),
+    [
+        ("alos", 30, "AW3D30", "AW3D30_global.vrt", "AW3D30_global/ALPSMLC30_N000E000_DSM.tif"),
+        ("alos-ellipsoidal", 30, "AW3D30_E", "AW3D30_E_global.vrt", "AW3D30_E_global/ALPSMLC30_N000E000_DSM_wgs84.tif"),
+        ("srtm", 30, "SRTM_GL1", "SRTM_GL1_srtm.vrt", "SRTM_GL1_srtm/N00E000.tif"),
+        ("srtm", 90, "SRTM_GL3", "SRTM_GL3_srtm.vrt", "SRTM_GL3_srtm/North/North_0_29/N00E000.tif"),
+        (
+            "srtm-ellipsoidal",
+            30,
+            "SRTM_GL1_Ellip",
+            "SRTM_GL1_Ellip_srtm.vrt",
+            "SRTM_GL1_Ellip_srtm/North/North_0_29/N00E000_wgs84.tif",
+        ),
+    ],
+)
+def test_download_only_missing_tiles_in_both_layouts(
+    tmp_path: os.PathLike[str],
+    http_server: tuple[str, list[str]],
+    layout: str,
+    source: str,
+    resolution: int,
+    dataset: str,
+    catalog_name: str,
+    relative: str,
+) -> None:
+    url, requests = http_server
+    cache = os.path.join(tmp_path, "cache")
+    product_cache = os.path.join(cache, "opentopography", dataset)
+    existing_parts = relative.split("/")
+    existing_path = (
+        os.path.join(product_cache, *existing_parts) if layout == "legacy" else os.path.join(product_cache, "E000", existing_parts[-1])
+    )
+    write_raster(existing_path, np.full((5, 5), 100))
+    missing_relative = relative.replace("E000", "W001")
+    missing_parts = missing_relative.split("/")
+    write_tile_catalog(os.path.join(tmp_path, dataset, catalog_name), (relative, missing_relative))
+    write_raster(
+        os.path.join(tmp_path, dataset, *missing_parts),
+        np.full((5, 5), 200),
+        (-1.125, 0.25, 0, 1.125, 0, -0.25),
+    )
+    offset = 0 if source.endswith("-ellipsoidal") else 45
+    if offset:
+        write_raster(
+            os.path.join(cache, "geoid", "us_nga_egm96_15.tif"),
+            np.full((5, 9), offset),
+            (-1.125, 0.25, 0, 1.125, 0, -0.25),
+        )
+    dem = Dem(cache_dir=cache, source=source, resolution=resolution)
+    dem.provider.base_url = url
+    tiles = {tile.info.west: tile for tile in dem.preload_dem_tiles(-1, 1, 0, 1)}
+    assert tiles[0].info.path == existing_path
+    assert tiles[-1].info.path == os.path.join(product_cache, "W001", missing_parts[-1])
+    assert all(tile.info.resolution == resolution for tile in tiles.values())
+    np.testing.assert_array_equal(tiles[0].heights, 100 + offset)
+    np.testing.assert_array_equal(tiles[-1].heights, 200 + offset)
+    assert requests == [f"/{dataset}/{catalog_name}", f"/{dataset}/{missing_relative}"]
+    second = Dem(cache_dir=cache, source=source, resolution=resolution)
+    second.provider.base_url = url
+    np.testing.assert_array_equal(second.interpolate_heights([-0.5, 0.5], [0.5, 0.5]), [200 + offset, 100 + offset])
+    assert requests == [f"/{dataset}/{catalog_name}", f"/{dataset}/{missing_relative}"]
+    if layout == "legacy":
+        assert not os.path.exists(os.path.join(product_cache, "E000", existing_parts[-1]))
 
 
 @pytest.mark.parametrize(
