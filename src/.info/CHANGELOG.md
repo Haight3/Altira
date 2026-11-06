@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project uses calendar versioning in the `YYYY.MM.INC0.PATCH` format.
 
+## [2026.11.0] - (2026-10-11)
+
+### Fixed
+
+- Fix project.toml and delete pypi GDAL dependency.
+
+### Security
+
+
 ## [2026.10.3] - (2026-10-11)
 
 ### Added
