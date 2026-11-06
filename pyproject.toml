@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "altira"
-version = "2026.10.3"
+version = "2026.11.0"
 description = 'Image-driven DEM acquisition and elevation queries.'
 readme = "README.md"
 requires-python = ">=3.11"
@@ -31,7 +31,6 @@ classifiers = [
 ]
 dependencies = [
     "defusedxml>=0.7.1",
-    "GDAL>=3.8",
     "numpy>=1.26",
     "requests>=2.32",
     "typer>=0.12",
@@ -111,7 +110,7 @@ testpaths = ["tests"]
 filterwarnings = ["error"]
 
 [tool.bumpver]
-current_version = "2026.10.3"
+current_version = "2026.11.0"
 version_pattern = "YYYY.MM.PATCH"
 commit_message = "ver(altira): bump version from {old_version} -> {new_version}"
 commit = true
@@ -151,42 +150,42 @@ indent-style = "space"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "ANN401",
-    "COM812",
-    "D205",
-    "D213",
-    "D400",
-    "D401",
-    "D413",
-    "D415",
+    "any-type",
+    "missing-trailing-comma",
+    "missing-blank-line-after-summary",
+    "multi-line-summary-second-line",
+    "missing-trailing-period",
+    "non-imperative-mood",
+    "missing-blank-line-after-last-section",
+    "missing-terminal-punctuation",
     "EM",
-    "EM101",
-    "ERA001",
-    "FBT001",
-    "FBT002",
-    "PLR0913",
+    "raw-string-in-exception",
+    "commented-out-code",
+    "boolean-type-hint-positional-argument",
+    "boolean-default-value-positional-argument",
+    "too-many-arguments",
     "PTH",
-    "FURB103", # Repository path convention uses strings and os.path.
-    "RET504",
-    "T201",
-    "TRY003",
-    "C901",
-    "PLR0917",
-    "PLR2004",
-    "SLF001",
-    "N812",
-    "PLR0914",
-    "PLC2701",
-    "PLW0717",
-    "N817",
-    "RUF067",
+    "write-whole-file", # Repository path convention uses strings and os.path.
+    "unnecessary-assign",
+    "print",
+    "raise-vanilla-args",
+    "complex-structure",
+    "too-many-positional-arguments",
+    "magic-value-comparison",
+    "private-member-access",
+    "lowercase-imported-as-non-lowercase",
+    "too-many-locals",
+    "import-private-name",
+    "too-many-statements-in-try-clause",
+    "camelcase-imported-as-acronym",
+    "non-empty-init-module",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"resources/docs/conf.py" = ["A001", "D100", "INP001", "Q000", "UP009", "UP030", "UP031", "UP032", "I001", "COM812"]
-"resources/scripts/*.py" = ["D100", "INP001", "UP009"]
-"tests/*.py" = ["ANN201", "D100", "D103", "INP001", "RUF048", "S101", "PERF102", "B007", "PLR2004", "N806", "PLC0415", "ANN202"]
-"src/**/__init__.py" = ["RUF067", "F401", "CPY001", "F403", "D104"]
+"resources/docs/conf.py" = ["builtin-variable-shadowing", "undocumented-public-module", "implicit-namespace-package", "bad-quotes-inline-string", "utf8-encoding-declaration", "format-literals", "printf-string-formatting", "f-string", "unsorted-imports", "missing-trailing-comma"]
+"resources/scripts/*.py" = ["undocumented-public-module", "implicit-namespace-package", "utf8-encoding-declaration"]
+"tests/*.py" = ["missing-return-type-undocumented-public-function", "undocumented-public-module", "undocumented-public-function", "implicit-namespace-package", "map-int-version-parsing", "assert", "incorrect-dict-iterator", "unused-loop-control-variable", "magic-value-comparison", "non-lowercase-variable-in-function", "import-outside-top-level", "missing-return-type-private-function"]
+"src/**/__init__.py" = ["non-empty-init-module", "unused-import", "missing-copyright-notice", "undefined-local-with-import-star", "undocumented-public-package"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
