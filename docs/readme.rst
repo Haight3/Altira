@@ -1,7 +1,7 @@
 ========
 Overview
 ========
-Altira v-2026.11.1
+Altira v-2026.11.0
 
 
 .. start-badges
